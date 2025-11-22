@@ -450,6 +450,32 @@ select {
   gap: 0.75rem;
 }
 
+.intraday {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.intraday-ladder {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.ladder-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: #0f1117;
+  border: 1px solid #1b2130;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  align-items: center;
+}
+
+.ladder-row .muted {
+  color: var(--muted);
+}
+
 .coverage-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
