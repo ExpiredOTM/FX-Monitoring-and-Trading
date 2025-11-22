@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FX Treasury Trading Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">FX Trading Desk</div>
+        <div class="status">Professional Portal</div>
+        <nav>
+          <button class="nav-item active">Trading Desk</button>
+          <button class="nav-item">Market Depth</button>
+          <button class="nav-item">Client Analytics</button>
+          <button class="nav-item">Risk & Exposure</button>
+          <button class="nav-item muted">Testing</button>
+        </nav>
+        <div class="session-meta">
+          <div>Market Status</div>
+          <div class="tag tag-green">Live</div>
+          <div class="timestamp">London: <span id="londonTime"></span></div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="toolbar">
+          <div>
+            <h1>Trading Desk Overview</h1>
+            <p class="subtitle">
+              Real-time PnL, volume, quality of execution, and spread performance
+            </p>
+          </div>
+          <div class="filters">
+            <div class="chip-group">
+              <button class="chip active">Today</button>
+              <button class="chip">WTD</button>
+              <button class="chip">MTD</button>
+              <button class="chip">YTD</button>
+            </div>
+            <div class="select-group">
+              <label>Base Currency</label>
+              <select aria-label="Base currency">
+                <option>USD</option>
+                <option>EUR</option>
+                <option>GBP</option>
+              </select>
+            </div>
+            <div class="select-group">
+              <label>Quote Currencies</label>
+              <select aria-label="Quote currencies">
+                <option>All</option>
+                <option>EUR</option>
+                <option>JPY</option>
+                <option>GBP</option>
+                <option>CAD</option>
+              </select>
+            </div>
+          </div>
+        </header>
+
+        <section class="grid kpi-grid" aria-label="Trading KPIs">
+          <article class="card">
+            <div class="label">Realized P&amp;L</div>
+            <div class="value" id="realizedPnl"></div>
+            <div class="delta" id="pnlDelta"></div>
+          </article>
+          <article class="card">
+            <div class="label">Total Volume</div>
+            <div class="value" id="totalVolume"></div>
+            <div class="meta" id="volumeCount"></div>
+          </article>
+          <article class="card">
+            <div class="label">Execution Quality</div>
+            <div class="value" id="executionQuality"></div>
+            <div class="delta" id="fillRate"></div>
+          </article>
+          <article class="card">
+            <div class="label">Spread P&amp;L</div>
+            <div class="value" id="spreadPnl"></div>
+            <div class="delta" id="spreadDelta"></div>
+          </article>
+        </section>
+
+        <section class="card" aria-label="Attribution">
+          <div class="section-header">
+            <div>
+              <div class="label">P&amp;L Attribution</div>
+              <div class="muted">Breakdown by spread revenue, hedging costs, and net P&amp;L</div>
+            </div>
+            <div class="tag tag-green">Hedging balanced</div>
+          </div>
+          <div class="attribution">
+            <div class="attribution-row">
+              <span>Spread Revenue</span>
+              <div class="bar bar-green" id="spreadRevenueBar"></div>
+              <span id="spreadRevenue"></span>
+            </div>
+            <div class="attribution-row">
+              <span>Hedging Costs</span>
+              <div class="bar bar-red" id="hedgingCostsBar"></div>
+              <span id="hedgingCosts"></span>
+            </div>
+            <div class="attribution-row">
+              <span>Net P&amp;L</span>
+              <div class="bar bar-blue" id="netPnlBar"></div>
+              <span id="netPnl"></span>
+            </div>
+          </div>
+          <div class="insights" id="pnlInsights"></div>
+        </section>
+
+        <section class="grid dual" aria-label="Market Depth and Liquidity">
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <div class="label">Market Depth</div>
+                <div class="muted">Level II order book and liquidity analysis</div>
+              </div>
+              <div class="pill-group">
+                <button class="pill active">EUR/USD</button>
+                <button class="pill">GBP/USD</button>
+                <button class="pill">USD/JPY</button>
+              </div>
+            </div>
+            <div class="orderbook">
+              <div>
+                <div class="label">Bid Depth</div>
+                <div id="bidDepth" class="depth-list"></div>
+              </div>
+              <div>
+                <div class="label">Ask Depth</div>
+                <div id="askDepth" class="depth-list"></div>
+              </div>
+            </div>
+            <div class="liquidity-metrics" id="liquidityMetrics"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <div class="label">Client Analytics</div>
+                <div class="muted">Segment performance, profitability, and trade patterns</div>
+              </div>
+              <button class="pill">Filters</button>
+            </div>
+            <div class="client-grid" id="clientGrid"></div>
+          </article>
+        </section>
+
+        <section class="grid dual" aria-label="Risk and Exposure">
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <div class="label">Risk &amp; Exposure Monitor</div>
+                <div class="muted">Real-time positions, limits, VaR, and counterparty risk</div>
+              </div>
+              <div class="tag tag-green">All limits OK</div>
+            </div>
+            <div class="exposure-grid" id="exposureGrid"></div>
+            <div class="insights" id="riskInsights"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <div class="label">Risk Analytics</div>
+                <div class="muted">VaR trend, limit utilization, and scenario stress</div>
+              </div>
+            </div>
+            <div class="risk-metrics" id="riskMetrics"></div>
+            <div class="scenario" id="stressScenario"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
