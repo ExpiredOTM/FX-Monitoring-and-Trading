@@ -178,6 +178,50 @@
             </div>
             <div class="risk-metrics" id="riskMetrics"></div>
             <div class="scenario" id="stressScenario"></div>
+            <div class="insights" id="alertList"></div>
+          </article>
+        </section>
+
+        <section class="grid dual" aria-label="Funding and Settlements">
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <div class="label">Cash, Funding &amp; Hedge Coverage</div>
+                <div class="muted">Overnight swap drag, liquidity buffer, and hedge ratios by currency</div>
+              </div>
+              <div class="tag tag-blue">Treasury Ops</div>
+            </div>
+            <div class="funding-grid">
+              <div class="funding-col">
+                <div class="metric-row"><strong>Overnight funding impact</strong><span id="fundingImpact"></span></div>
+                <div class="metric-row"><span>Liquidity buffer</span><span id="liquidityBuffer"></span></div>
+                <div class="metric-row"><span>Collateral headroom</span><span id="collateralHeadroom"></span></div>
+                <div class="funding-pills" id="fundingMetrics"></div>
+              </div>
+              <div class="funding-col">
+                <div class="label">Hedge Coverage</div>
+                <div class="coverage-grid" id="coverageGrid"></div>
+                <div class="insights" id="fundingInsights"></div>
+              </div>
+            </div>
+            <div class="intraday">
+              <div class="label">Intraday Liquidity Ladder</div>
+              <div class="intraday-ladder" id="liquidityLadder"></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <div class="label">Settlement Ladder</div>
+                <div class="muted">Upcoming value dates and cash obligations by counterparty</div>
+              </div>
+              <div class="pill-group">
+                <button class="pill active">T+2</button>
+                <button class="pill">T+3</button>
+              </div>
+            </div>
+            <div class="settlement-list" id="settlementList"></div>
           </article>
         </section>
       </main>

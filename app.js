@@ -150,6 +150,30 @@ const currencyLimits = {
   CAD: 60_000_000,
 };
 
+const fundingCurves = {
+  USD: -0.0006,
+  EUR: -0.0003,
+  GBP: -0.0004,
+  JPY: -0.0001,
+  CAD: -0.0005,
+};
+
+const settlementBook = [
+  { valueDate: 'T+2', ccy: 'EUR', amount: -18_000_000, counterparty: 'BNP Paribas', note: 'Spot leg hedge', type: 'Pay' },
+  { valueDate: 'T+2', ccy: 'USD', amount: 22_500_000, counterparty: 'JPM', note: 'Client deliverable', type: 'Receive' },
+  { valueDate: 'T+3', ccy: 'JPY', amount: -12_700_000, counterparty: 'Nomura', note: 'Forward roll', type: 'Pay' },
+  { valueDate: 'T+3', ccy: 'GBP', amount: 9_400_000, counterparty: 'Barclays', note: 'Corporate hedge', type: 'Receive' },
+  { valueDate: 'T+3', ccy: 'EUR', amount: -6_200_000, counterparty: 'Deutsche', note: 'Swap unwind', type: 'Pay' },
+];
+
+const intradayLadder = [
+  { time: '09:00', book: 'CLS prefund', net: -5_200_000, note: 'CLS paydowns' },
+  { time: '11:00', book: 'Client settlements', net: 7_800_000, note: 'EUR receipts' },
+  { time: '13:00', book: 'Margin', net: -3_400_000, note: 'Futures variation margin' },
+  { time: '15:00', book: 'Funding rolls', net: 6_100_000, note: 'USD roll returns' },
+  { time: '17:00', book: 'Nostro sweep', net: -2_250_000, note: 'Cash sweep to HQ' },
+];
+
 function formatMoney(value, currency = 'USD') {
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -286,6 +310,61 @@ function computeExposure(tradesData) {
   return exposures;
 }
 
+function computeHedgeCoverage(tradesData, exposures) {
+  const hedged = {};
+  tradesData.forEach((trade) => {
+    if (!trade.hedged) return;
+    const [base] = trade.pair.split('/');
+    const baseAmount = trade.side === 'buy' ? trade.notional : -trade.notional;
+    hedged[base] = (hedged[base] || 0) + baseAmount;
+  });
+
+  return Object.entries(exposures).map(([ccy, net]) => {
+    const hedgedAmt = hedged[ccy] || 0;
+    const coverage = Math.min(Math.abs(hedgedAmt) / Math.abs(net || 1), 1);
+    return {
+      ccy,
+      net,
+      hedged: hedgedAmt,
+      coverage,
+    };
+  });
+}
+
+function computeFundingImpact(exposures) {
+  let total = 0;
+  const perCcy = Object.entries(exposures).map(([ccy, amount]) => {
+    const rate = fundingCurves[ccy] || 0;
+    const impact = amount * rate;
+    total += impact;
+    return { ccy, rate, impact };
+  });
+  return { total, perCcy };
+}
+
+function computeSettlementTotals(book) {
+  const byDate = {};
+  book.forEach((item) => {
+    if (!byDate[item.valueDate]) {
+      byDate[item.valueDate] = { inflows: 0, outflows: 0 };
+    }
+    if (item.amount >= 0) {
+      byDate[item.valueDate].inflows += item.amount;
+    } else {
+      byDate[item.valueDate].outflows += Math.abs(item.amount);
+    }
+  });
+  return byDate;
+}
+
+function computeCounterpartyConcentration(book) {
+  const totals = {};
+  book.forEach((item) => {
+    totals[item.counterparty] = (totals[item.counterparty] || 0) + item.amount;
+  });
+  return Object.entries(totals).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+}
+
 function historicalVaR(returns, portfolioValue, percentile = 0.99) {
   const sorted = [...returns].sort((a, b) => a - b);
   const index = Math.floor((1 - percentile) * sorted.length);
@@ -365,6 +444,103 @@ function renderExposure(exposures) {
   });
 }
 
+function renderCoverage(coverageData) {
+  const grid = document.getElementById('coverageGrid');
+  grid.innerHTML = '';
+  coverageData.forEach((row) => {
+    const badgeClass = row.coverage > 0.9 ? 'success' : row.coverage > 0.7 ? 'warning' : 'danger';
+    const card = document.createElement('div');
+    card.className = 'coverage-card';
+    card.innerHTML = `
+      <div class="metric-row"><strong>${row.ccy}</strong><span class="badge ${badgeClass}">${(row.coverage * 100).toFixed(0)}% hedged</span></div>
+      <div class="metric-row"><span>Net</span><span>${formatMoney(row.net)}</span></div>
+      <div class="metric-row"><span>Hedged</span><span>${formatMoney(row.hedged)}</span></div>
+      <div class="bar bar-green" style="height: 6px"><span style="width: ${row.coverage * 100}%"></span></div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderFunding(fundingImpact, settlementTotals) {
+  const fundingImpactEl = document.getElementById('fundingImpact');
+  const liquidityBufferEl = document.getElementById('liquidityBuffer');
+  const collateralHeadroomEl = document.getElementById('collateralHeadroom');
+  const fundingMetricsEl = document.getElementById('fundingMetrics');
+
+  fundingImpactEl.textContent = `${fundingImpact.total >= 0 ? '+' : ''}${formatMoney(fundingImpact.total)}`;
+
+  const t2 = settlementTotals['T+2'] || { inflows: 0, outflows: 0 };
+  const buffer = t2.inflows - t2.outflows;
+  liquidityBufferEl.textContent = `${buffer >= 0 ? 'Surplus' : 'Shortfall'} ${formatMoney(buffer)}`;
+  collateralHeadroomEl.textContent = formatMoney(Math.max(buffer * 0.25, 4_500_000));
+
+  fundingMetricsEl.innerHTML = '';
+  fundingImpact.perCcy.forEach((item) => {
+    const pill = document.createElement('div');
+    pill.className = 'metric-pill';
+    const tone = item.impact <= 0 ? 'muted' : 'danger';
+    pill.innerHTML = `<span class="label">${item.ccy} swap</span><strong class="${tone}">${formatMoney(item.impact)}</strong><span class="muted">${(item.rate * 10_000).toFixed(1)} bps</span>`;
+    fundingMetricsEl.appendChild(pill);
+  });
+}
+
+function renderFundingInsights(fundingImpact, buffer) {
+  const insights = [];
+  if (fundingImpact.total < 0) {
+    insights.push('Carry drag minimal; keep rolls short to avoid negative basis widening.');
+  } else {
+    insights.push('Funding turning costly; consider swapping into receiving legs or netting with clients.');
+  }
+
+  if (buffer > 0) {
+    insights.push('Liquidity surplus can fund overnight margins without tapping credit lines.');
+  } else {
+    insights.push('Shortfall expected; pre-position collateral or advance swaps to T+1.');
+  }
+
+  renderInsights(insights, 'fundingInsights');
+}
+
+function renderSettlementList(book) {
+  const list = document.getElementById('settlementList');
+  list.innerHTML = '';
+  book.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'settlement-row';
+    row.innerHTML = `
+      <div>
+        <div class="label">${item.valueDate}</div>
+        <div class="muted">${item.note}</div>
+      </div>
+      <div class="metric-row"><span>${item.counterparty}</span><span class="badge ${item.amount >= 0 ? 'success' : 'danger'}">${item.type}</span></div>
+      <div class="metric-row"><span>${item.ccy}</span><strong>${formatMoney(item.amount)}</strong></div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function renderLiquidityLadder(buckets) {
+  const ladder = document.getElementById('liquidityLadder');
+  ladder.innerHTML = '';
+
+  buckets.forEach((bucket) => {
+    const row = document.createElement('div');
+    row.className = 'ladder-row';
+    const tone = bucket.net >= 0 ? 'success' : 'danger';
+    row.innerHTML = `
+      <div>
+        <div class="label">${bucket.time}</div>
+        <div class="muted">${bucket.book}</div>
+      </div>
+      <div class="muted">${bucket.note}</div>
+      <div class="metric-row"><span class="badge ${tone}">${bucket.net >= 0 ? 'Inflow' : 'Outflow'}</span><strong>${formatMoney(
+      bucket.net
+    )}</strong></div>
+    `;
+    ladder.appendChild(row);
+  });
+}
+
 function renderRiskAnalytics(metrics, exposures) {
   const riskContainer = document.getElementById('riskMetrics');
   riskContainer.innerHTML = '';
@@ -391,8 +567,33 @@ function renderRiskAnalytics(metrics, exposures) {
     <div class="metric-row"><strong>Scenario: 80bp USDJPY spike</strong><span class="badge warning">Liquidity stress</span></div>
     <div class="metric-row"><span>Projected P&L impact</span><span>${formatMoney(metrics.realizedPnl - stressScenario)}</span></div>
     <div class="metric-row"><span>Margin call headroom</span><span>${formatMoney(portfolioValue * 0.12)}</span></div>
-  `;
-}
+    `;
+  }
+
+  function renderAlerts(exposures, settlementTotals) {
+    const alerts = [];
+    Object.entries(exposures).forEach(([ccy, value]) => {
+      const limit = currencyLimits[ccy] || 80_000_000;
+      const utilization = Math.abs(value) / limit;
+      if (utilization >= 0.8) {
+        alerts.push(`${ccy} limit at ${(utilization * 100).toFixed(0)}% — hedge or net with client flow.`);
+      }
+    });
+
+    const t2 = settlementTotals['T+2'] || { inflows: 0, outflows: 0 };
+    if (t2.outflows > t2.inflows) {
+      const shortfall = t2.outflows - t2.inflows;
+      alerts.push(`T+2 settlement shortfall of ${formatMoney(shortfall)}; pre-fund nostros or roll swaps earlier.`);
+    }
+
+    const concentration = computeCounterpartyConcentration(settlementBook);
+    if (concentration.length) {
+      const [largestName, largestAmount] = concentration[0];
+      alerts.push(`Largest counterparty ${largestName} with ${formatMoney(largestAmount)} exposure — consider netting.`);
+    }
+
+    renderInsights(alerts, 'alertList');
+  }
 
 function renderLiquidityMetrics(depthMetrics) {
   const container = document.getElementById('liquidityMetrics');
@@ -494,6 +695,9 @@ function bootstrap() {
   const depthMetrics = computeDepthMetrics(orderBook);
   const clientAnalytics = computeClientAnalytics(trades);
   const exposures = computeExposure(trades);
+  const coverage = computeHedgeCoverage(trades, exposures);
+  const fundingImpact = computeFundingImpact(exposures);
+  const settlementTotals = computeSettlementTotals(settlementBook);
 
   renderKpis(metrics);
   renderPnlAttribution(metrics);
@@ -503,6 +707,12 @@ function bootstrap() {
   renderClientCards(clientAnalytics);
   renderExposure(exposures);
   renderRiskAnalytics(metrics, exposures);
+  renderCoverage(coverage);
+  renderFunding(fundingImpact, settlementTotals);
+  renderFundingInsights(fundingImpact, (settlementTotals['T+2']?.inflows || 0) - (settlementTotals['T+2']?.outflows || 0));
+  renderSettlementList(settlementBook);
+  renderLiquidityLadder(intradayLadder);
+  renderAlerts(exposures, settlementTotals);
 
   const pnlInsightText = [
     `Spread revenue represents ${(metrics.spreadRevenue / metrics.volume * 10_000).toFixed(2)} bps capture across routed flow.`,
