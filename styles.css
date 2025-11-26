@@ -116,6 +116,16 @@ nav {
   gap: 20px;
 }
 
+.page {
+  display: none;
+  gap: 20px;
+}
+
+.page.active {
+  display: grid;
+  gap: 20px;
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -190,6 +200,10 @@ select {
 
 .dual {
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+
+.triple {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .card {
@@ -430,6 +444,113 @@ select {
   background: #1a2236;
   border: 1px solid var(--border);
   color: var(--muted);
+}
+
+.funding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.funding-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.funding-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.intraday {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.intraday-ladder {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.ladder-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: #0f1117;
+  border: 1px solid #1b2130;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  align-items: center;
+}
+
+.ladder-row .muted {
+  color: var(--muted);
+}
+
+.coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.coverage-card {
+  background: #0f1117;
+  border: 1px solid #1b2130;
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settlement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settlement-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.8fr;
+  align-items: center;
+  background: #0f1117;
+  border: 1px solid #1b2130;
+  padding: 0.75rem;
+  border-radius: 12px;
+  gap: 0.75rem;
+}
+
+.settlement-row strong {
+  color: #e8edff;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+  background: #0f1117;
+  border: 1px solid #1b2130;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.table-row span:last-child {
+  text-align: right;
+}
+
+.orderbook.compact .depth-row {
+  grid-template-columns: 1fr 1.3fr 1fr;
 }
 
 @media (max-width: 1080px) {
